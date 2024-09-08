@@ -1,8 +1,11 @@
-// File: door_security_system.ino
+// ESP32 Remote Surveillance
 
 // Blynk template information
-#define BLYNK_TEMPLATE_ID "TMPL2uqpPdwaF"
-#define BLYNK_TEMPLATE_NAME "Surveillance"
+// #define BLYNK_TEMPLATE_ID "TMPL2uqpPdwaF"
+// #define BLYNK_TEMPLATE_NAME "Surveillance"
+
+#define BLYNK_TEMPLATE_ID "TMPL2sj-eG4NU"
+#define BLYNK_TEMPLATE_NAME "AutoSurvaillance"
 
 #define BLYNK_PRINT Serial
 #include <WiFi.h>
@@ -11,21 +14,19 @@
 #include <Stepper.h>
 #include <Wire.h>
 #include <TinyGPS++.h>
-#include <driver/i2s.h>
 #include "esp_camera.h"
 
 // Blynk Auth Token
-char auth[] = "7T_5bZd-DmxVSDpoVMuYH3N7diKdqgg4";
+char auth[] = "cU1rEJAP1acbwevy6Mhta4mV1ZJKC2eN";
 
 // Wi-Fi credentials
-const char *ssid = "EMTECH";
-const char *pass = "0987654321";
+const char *ssid = "jacob";
+const char *pass = "123456789";
 
+// Camera Configuration 
+#define CAMERA_MODEL_AI_THINKER  
 
-// Camera Configuration - Replace camera_pins.h
-#define CAMERA_MODEL_AI_THINKER // Using AI Thinker model
-
-// Define camera pins for AI Thinker model
+// Define camera pins 
 #define PWDN_GPIO_NUM    32
 #define RESET_GPIO_NUM   -1
 #define XCLK_GPIO_NUM    0
@@ -81,11 +82,6 @@ const int forceSensorPin = 34;
 int forceSensorThreshold = 500;
 bool forceDetected = false;
 
-// I2S Microphone Configuration
-#define I2S_WS 25   // GPIO25
-#define I2S_SD 26   // GPIO26
-#define I2S_SCK 27  // GPIO27
-
 // Function Prototypes
 void lockDoor();
 void unlockDoor();
@@ -96,20 +92,12 @@ void stopCameraAndAudio();
 void checkForceSensor();
 void setupGPS();
 void updateGPS();
-void setupI2SMicrophone();
-void handleAudioStream();
 void startCameraServer();
 void runDCMotor();
 void stopDCMotor();
 
 BlynkTimer timer;
 WebServer server(80);
-
-// Rename Adafruit sensor_t to avoid conflict
-typedef struct adafruit_sensor {
-  int sensor_id;
-  const char *sensor_name;
-} adafruit_sensor_t;
 
 void setup() {
   Serial.begin(115200);
@@ -131,8 +119,7 @@ void setup() {
   pinMode(motorPin1, OUTPUT);
   pinMode(motorPin2, OUTPUT);
 
-  // Initialize peripherals
-  setupI2SMicrophone();
+  // Initialize camera and GPS
   startCameraServer();
   setupGPS();
 
@@ -192,7 +179,7 @@ void runDCMotor() {
   digitalWrite(motorPin1, HIGH);
   digitalWrite(motorPin2, LOW);
   while (digitalRead(limitSwitchOpen) == HIGH) {
-    // Keep running motor until limit switch is triggered
+    // Motor Keep running until limit switch is triggered
   }
   stopDCMotor();
 }
@@ -245,7 +232,6 @@ void startCameraAndAudio() {
   digitalWrite(relayAudio, HIGH);
   Blynk.virtualWrite(VPIN_BUTTON_CAMERA_AUDIO, 1);
   Blynk.virtualWrite(VPIN_BUTTON_CAMERA_AUDIO, "http://" + WiFi.localIP().toString() + "/jpg");
-  handleAudioStream();
 }
 
 void stopCameraAndAudio() {
@@ -279,42 +265,6 @@ void updateGPS() {
       Blynk.virtualWrite(VPIN_GPS_LAT, gps.location.lat());
       Blynk.virtualWrite(VPIN_GPS_LNG, gps.location.lng());
     }
-  }
-}
-
-// I2S microphone setup
-void setupI2SMicrophone() {
-  i2s_config_t i2s_config = {
-    .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_RX),
-    .sample_rate = 16000,
-    .bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT,
-    .channel_format = I2S_CHANNEL_FMT_ONLY_LEFT,
-    .communication_format = (i2s_comm_format_t)(I2S_COMM_FORMAT_I2S | I2S_COMM_FORMAT_I2S_MSB),
-    .intr_alloc_flags = ESP_INTR_FLAG_LEVEL1,
-    .dma_buf_count = 8,
-    .dma_buf_len = 1024,
-    .use_apll = false
-  };
-  i2s_pin_config_t pin_config = {
-    .bck_io_num = I2S_SCK,
-    .ws_io_num = I2S_WS,
-    .data_out_num = -1,
-    .data_in_num = I2S_SD
-  };
-  i2s_driver_install(I2S_NUM_0, &i2s_config, 0, NULL);
-  i2s_set_pin(I2S_NUM_0, &pin_config);
-  i2s_set_clk(I2S_NUM_0, 16000, I2S_BITS_PER_SAMPLE_16BIT, I2S_CHANNEL_MONO);
-}
-
-// Handle audio stream
-void handleAudioStream() {
-  size_t bytes_read;
-  uint8_t i2s_data[1024];
-  while (digitalRead(relayAudio) == HIGH) {
-    i2s_read(I2S_NUM_0, &i2s_data, sizeof(i2s_data), &bytes_read, portMAX_DELAY);
-    // Convert the data to a String or handle it accordingly
-    String audioData((char*)i2s_data, bytes_read);
-    Blynk.virtualWrite(VPIN_BUTTON_CAMERA_AUDIO, audioData);
   }
 }
 
