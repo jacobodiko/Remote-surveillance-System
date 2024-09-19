@@ -20,7 +20,7 @@
 char auth[] = "cU1rEJAP1acbwevy6Mhta4mV1ZJKC2eN";
 
 // Wi-Fi credentials
-const char *ssid = "jacob";
+const char *ssid = "arduino";
 const char *pass = "123456789";
 
 // Camera Configuration 
