@@ -1,100 +1,64 @@
 # Remote-surveillance-System
 
-### Overview
+This code provides a comprehensive implementation of a **Remote Surveillance System** using an ESP32, controlled via the **Blynk app**. The system manages various components, including motors, sensors, and a GPS module. Here's a detailed explanation:
 
-This ESP32-based project is a **remote surveillance system** that integrates several functionalities such as **GPS tracking**, **camera streaming**, **DC and stepper motor control**, and various **relay-driven mechanisms** (siren, spray, lock). The system is connected to **Blynk**, a platform for IoT device control via a mobile app. The project is designed to perform multiple tasks including:
+### **Components and Setup**
 
-- **Lock/unlock doors**
-- **Control motors**
-- **Activate siren and spray**
-- **Stream video and audio from a camera**
-- **Monitor GPS data for real-time location tracking**
-- **Detect forced entry using a force sensor**
+1. **Blynk Configuration and Wi-Fi Setup:**
+   - **Blynk Template and Auth Token:** The template and authentication token allow the ESP32 to connect and communicate with the Blynk app, where users can control the system remotely.
+   - **Wi-Fi Credentials:** The ESP32 connects to the local Wi-Fi network using the specified SSID and password.
 
-### Key Components
+2. **Motor and Sensor Configuration:**
+   - **DC Motor (L298 Driver):**  
+     The DC motor is connected to pins 2, 4, and 16, which control the door opening/closing mechanism. It uses the L298 motor driver.
+   - **Stepper Motor (L298 Driver):**  
+     The stepper motor (connected to pins 12, 13, 14, and 15) controls the locking and unlocking of the door by rotating -90° to lock and +90° to unlock.
+   - **Limit Switches:**  
+     These switches ensure that the DC motor stops when the door is fully opened or closed by detecting the limits.
+   - **Force Sensor and Pump:**  
+     A force sensor (connected to pin 34) detects pressure or force on the door, which may indicate tampering. The pump (connected to pins 18 and 19) and siren are activated if a force is detected.
+   - **GPS Module:**  
+     The GPS module uses the TinyGPS++ library and UART communication to get real-time location data, which is sent to the Blynk app.
 
-- **Blynk**: Used to interface with a mobile app that controls various devices.
-- **ESP32 Camera**: Used for streaming video.
-- **GPS Module**: Used for tracking location.
-- **Stepper and DC Motors**: Used for door control and other mechanisms.
-- **Relays**: Used to switch various components like siren, spray, camera, and audio.
+### **Code Functions**
 
-### Code Explanation
+1. **`setup()`:**
+   - Initializes serial communication for debugging.
+   - Connects the ESP32 to Wi-Fi and Blynk.
+   - Configures the GPIO pins for motor control, limit switches, force sensor, and pump.
+   - Sets up a timer to regularly check the force sensor.
+   - Initializes the Blynk properties for the virtual pins used in the mobile app.
 
-1. **Includes and Defines**:
-   - `WiFi.h`, `WebServer.h`, `BlynkSimpleEsp32.h`, `Stepper.h`, `Wire.h`, `TinyGPS++.h`, and `esp_camera.h`: Include necessary libraries.
-   - `#define BLYNK_TEMPLATE_ID`, `BLYNK_TEMPLATE_NAME`: Used to identify the Blynk template for your project.
-   - GPIO pins for the ESP32 Camera, Stepper Motor, and relays are defined here for easy configuration.
+2. **Motor Control:**
+   - **DC Motor Control (`runDCMotorOpen()` and `runDCMotorClose()`):**  
+     These functions control the DC motor to either open or close the door. The motor stops when the respective limit switch is triggered.
+   - **Stepper Motor Control (`lockDoor()` and `unlockDoor()`):**  
+     The stepper motor is used to lock or unlock the door by rotating it 90°.
 
-2. **Wi-Fi and Blynk Credentials**:
-   - The ESP32 connects to a Wi-Fi network using credentials provided (`ssid`, `pass`) and communicates with Blynk using the **authentication token** `auth[]`.
+3. **Force Detection:**
+   - **`checkForceSensor()`:**  
+     Reads the force sensor value and checks if it exceeds a certain threshold. If force is detected, it logs an event in Blynk and activates the pump and siren for one minute.
+   - **`activatePumpAndSiren()` and `deactivatePumpAndSiren()`:**  
+     These functions control the pump and siren, which can be triggered either automatically (upon force detection) or manually via the Blynk app.
 
-3. **Camera Configuration**:
-   - Pins for the camera module are defined to correctly interface with the ESP32. This is for the **AI Thinker Camera Module**.
+4. **GPS Tracking:**
+   - **`updateGPS()`:**  
+     Retrieves the GPS location from the GPS module and updates the Blynk app with the current latitude and longitude.
 
-4. **Motor Configurations**:
-   - **Stepper Motor**: Configured to control the door lock mechanism using the GPIO pins 14, 12, 13, and 15.
-   - **DC Motor**: Controlled using an **H-Bridge** motor driver connected to GPIO pins 2, 4, and an enable pin 16.
+5. **Blynk Virtual Pin Handlers:**
+   - **`BLYNK_WRITE(VPIN_MOTOR)`:**  
+     Controls the DC motor (to open/close the door) based on user input from the Blynk app.
+   - **`BLYNK_WRITE(VPIN_LOCK_DOOR)` and `BLYNK_WRITE(VPIN_UNLOCK_DOOR)`:**  
+     Lock and unlock the door using the stepper motor based on user input.
+   - **`BLYNK_WRITE(VPIN_SIREN_SPRAY)`:**  
+     Manually activates the pump and siren via the Blynk app.
 
-5. **Relays**:
-   - Control components like the lock (`relayLock`), spray (`relaySpray`), siren (`relaySiren`), camera (`relayCamera`), and audio system (`relayAudio`).
+### **Overall Functionality:**
 
-6. **Force Sensor**:
-   - Connected to GPIO pin 34, it detects if force is applied beyond a certain threshold (`forceSensorThreshold = 500`), which might indicate a forced entry.
+- The **DC motor** handles the opening and closing of the door.
+- The **stepper motor** locks and unlocks the door.
+- The **force sensor** detects forced entry, triggering an alarm (pump and siren) and logging the event in the Blynk app.
+- The **GPS module** continuously updates the app with the current location, allowing remote tracking.
+- All these features can be monitored and controlled via the **Blynk mobile app**, making it a powerful IoT-based security system.
 
-7. **GPS Setup**:
-   - Configured using `TinyGPS++` library, with UART communication on GPIO pins 13 and 12 for receiving GPS data.
-
-8. **Blynk Virtual Pins**:
-   - Mapped to different Blynk interface buttons for controlling the device. For example:
-     - **V1**: Door lock/unlock
-     - **V2**: Motor control
-     - **V3**: Siren and spray control
-     - **V4**: GPS coordinates
-     - **V5**: Camera and audio
-
-### Functional Explanation
-
-#### 1. **`setup()` Function**
-   - Initializes serial communication, Blynk, and the GPIO pins for various components (relays, motors, etc.).
-   - **Starts the camera server** to handle requests for video streaming.
-   - **Initializes GPS** and sets up Blynk properties for different virtual pins.
-
-#### 2. **Main Loop: `loop()`**
-   - Runs the core functionalities:
-     - **Blynk.run()**: Maintains communication with the Blynk server.
-     - **timer.run()**: Executes timed tasks like checking the force sensor every second.
-     - **updateGPS()**: Updates GPS location data.
-     - **server.handleClient()**: Handles HTTP requests to stream camera feed.
-
-#### 3. **Lock/Unlock Door**
-   - Blynk virtual pin **V1** controls door locking/unlocking via a stepper motor.
-   - The motor rotates **90°** to lock and **-90°** to unlock the door.
-
-#### 4. **DC Motor Control**
-   - Controlled by **V2** in the Blynk app. The motor runs until a limit switch (`limitSwitchOpen`) is triggered.
-   - When the motor reaches the end of its path, it reverses and returns to the starting position, locking the door.
-
-#### 5. **Siren and Spray**
-   - Controlled by **V3**. Activates both the siren and spray when triggered.
-
-#### 6. **Camera and Audio Control**
-   - Controlled by **V5**. Starts streaming the camera feed and audio to the Blynk app. The stream is accessed via the local IP of the ESP32.
-
-#### 7. **Force Sensor Detection**
-   - The force sensor is checked every second. If a forceful entry is detected (force exceeds the threshold), the system automatically activates the **siren and spray**, and starts the **camera and audio** for a minute.
-
-#### 8. **GPS Tracking**
-   - Updates the GPS coordinates via **UART** communication. The data is regularly sent to the Blynk app on virtual pins **V4**.
-
-#### 9. **Camera Server**
-   - A **web server** is set up to handle HTTP GET requests at the `/jpg` endpoint. When accessed, the camera takes a snapshot and sends the image as a JPEG.
-
-### Key Functionalities:
-- **Remote Door Control**: Control locking/unlocking via the Blynk app.
-- **Siren and Spray Activation**: Triggered manually or automatically by force detection.
-- **Live Camera Stream**: Accessible via the local web server.
-- **GPS Monitoring**: Provides real-time location tracking.
-- **Force Detection**: Triggers emergency protocols.
-
----
+This project combines IoT, motor control, sensor integration, and remote surveillance into one cohesive system that is ideal for securing homes or small premises.
