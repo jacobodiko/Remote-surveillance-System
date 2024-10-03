@@ -1,4 +1,4 @@
-# Remote-surveillance-System
+# RemoteAuto-surveillance-System
 
 This code provides a comprehensive implementation of a **Remote Surveillance System** using an ESP32, controlled via the **Blynk app**. The system manages various components, including motors, sensors, and a GPS module. Here's a detailed explanation:
 
