@@ -11,8 +11,8 @@
 
 #define BLYNK_PRINT Serial
 
-const char *ssid = "EMTECH";
-const char *pass = "E&m2024#";
+const char *ssid = "arduino";
+const char *pass = "123456789";
 
 // DC Motor Configuration (L298 Driver)
 #define MOTOR_IN1 2
@@ -178,7 +178,7 @@ BLYNK_WRITE(VPIN_SIREN_SPRAY) {
   }
 }
 
-// GPS setup and update location
+// GPS setup and update location for Longitude and Latitude
 void updateGPS() {
   while (ss.available() > 0) {
     gps.encode(ss.read());
